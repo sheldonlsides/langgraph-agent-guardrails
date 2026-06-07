@@ -52,11 +52,11 @@ See [`## Example output`](#example-output) for a representative generated plan.
   every number the user sees.
 - **A provider-agnostic model factory**: one `create_model()` call swaps between Bedrock, OpenAI,
   and Anthropic with no code changes.
-- **A notebook that asserts its own claims**: the final cells run as a verification pass — a scope
-  probe confirms the input gate refuses off-topic and jailbreak inputs before any tool runs; an
-  injection probe patches the page fetch to return a poisoned page and confirms the agents ignore
-  the embedded payload while the calorie barrier still holds; a determinism probe confirms rendered
-  macros match a fresh `total_meal()` computation. If the notebook runs end to end, the claims hold.
+- **A notebook that asserts its own claims**: the final cells run as a verification pass mapped to
+  the [OWASP Top 10 for LLM Applications (2025)](https://genai.owasp.org/llm-top-10/). Four probes
+  cover direct prompt injection (LLM01), indirect prompt injection via poisoned tool output (LLM01),
+  fabricated macros and cap bypass (LLM09 Misinformation), and insecure inter-agent communication
+  (LLM01 plus LLM05 Improper Output Handling). If the notebook runs end to end, the claims hold.
 
 ## Why this exists
 
@@ -77,10 +77,18 @@ the meal plans are the demo.
 
 ## How it works at a glance
 
-```
-START → chef_plan → (route_after_chef)
-   ├─ out of scope ─────────────────────────────→ chef_summary → END   (refusal)
-   └─ Send() fan-out → recipe_worker × N (parallel) → meal_planner → chef_summary → END
+```mermaid
+flowchart TD
+    START([request]) --> CHEF[chef_plan<br/>ScopeCheck + unique dish per slot]
+    CHEF -->|out of scope| SUM[chef_summary]
+    CHEF -->|in scope: Send fan-out| W1[recipe_worker 1]
+    CHEF --> W2[recipe_worker 2]
+    CHEF --> WN[recipe_worker N]
+    W1 --> BAR[meal_planner barrier<br/>deterministic macros + render]
+    W2 --> BAR
+    WN --> BAR
+    BAR --> SUM
+    SUM --> END([END])
 ```
 
 - **`chef_plan`** *(Chef, temp 0.7)*: runs a `ScopeCheck`; if the request isn't about food it
@@ -131,7 +139,7 @@ through `uv run` so the project `.venv` is used (not a system/Anaconda Python).
 # 1. Install dependencies (from the committed lockfile)
 uv sync                          # or: ./install_deps
 
-# 2. Configure secrets — copy the template and fill it in
+# 2. Configure secrets. Copy the template and fill it in,
 cp .env.example .env
 #    set LLM_PROVIDER + LLM_PROVIDER_MODEL, the matching provider key,
 #    TAVILY_API_KEY, and DATABASE_URL (see the table below)
@@ -164,13 +172,13 @@ required vars are missing.
 |----------|-----------|----------|-------|
 | `LLM_PROVIDER` | ✅ | Selects the LLM backend | `bedrock` \| `openai` \| `anthropic` |
 | `LLM_PROVIDER_MODEL` | ✅ | Model id for that provider | e.g. `gpt-4o-mini`, `claude-sonnet-4-6` |
-| `OPENAI_API_KEY` | if `openai` | OpenAI credentials | — |
+| `OPENAI_API_KEY` | if `openai` | OpenAI credentials | n/a |
 | `ANTHROPIC_API_KEY` | if `anthropic` | Anthropic credentials | Bedrock uses AWS creds / `AWS_REGION` instead |
 | `TAVILY_API_KEY` | ✅ | Web recipe search | Used by the `tavily_search` tool |
 | `DATABASE_URL` | ✅ | pgvector connection | psycopg3 URL, e.g. `postgresql+psycopg://dev:devpass@localhost:5433/appdb` |
 | `HF_TOKEN` | optional | Embedding model download | Only needed for gated/private HF models |
 | `USER_AGENT` | optional | Outbound HTTP header for page fetches | Defaults to `langgraph-agent-guardrails/1.0` |
-| `LANGSMITH_API_KEY` / `LANGSMITH_ENDPOINT` / `LANGSMITH_PROJECT` | optional | LangSmith tracing | — |
+| `LANGSMITH_API_KEY` / `LANGSMITH_ENDPOINT` / `LANGSMITH_PROJECT` | optional | LangSmith tracing | n/a |
 
 ## Architecture notes (the bits worth knowing)
 
@@ -210,6 +218,10 @@ required vars are missing.
   *"vegetarian"*) go in the natural-language request. The Chef parses them when planning dishes.
 - **Don't trust scraped pages.** Recipe pages and search results are extracted for facts only; the
   guardrails explicitly forbid following any instructions found inside them.
+- **`torch==2.12.0` is hard-pinned.** This is intentional for reproducibility against the embedding
+  model. If `uv sync` cannot resolve a torch wheel for your platform (older CUDA, certain Linux glibc
+  versions, or specific Apple Silicon paths), install torch separately first matching your hardware,
+  then re-run `uv sync`.
 
 ## Example output
 

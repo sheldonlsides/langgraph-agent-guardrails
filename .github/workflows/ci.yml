@@ -30,7 +30,7 @@ jobs:
       # (Executing the notebook end to end needs secrets + a ~269MB download, so it
       # is intentionally not run here. See README for the headless-execute command.)
       - name: Byte-compile Python sources
-        run: uv run python -m compileall -q src main.py
+        run: uv run python -m compileall -q src
 
       - name: Validate notebook JSON
         # nbformat isn't a project dependency (the notebook is run via

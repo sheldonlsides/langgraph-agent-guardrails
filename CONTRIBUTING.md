@@ -18,7 +18,7 @@ changes, and get them merged.
 
 This is a **notebook-first** project: the full workflow lives in `src/agent_guardrails.ipynb`.
 Prefer extending the notebook over adding new modules. `src/common/model_factory.py` is the one
-standalone module (the provider-agnostic model factory); `main.py` is an unused stub.
+standalone module (the provider-agnostic model factory).
 
 ## Making changes
 
