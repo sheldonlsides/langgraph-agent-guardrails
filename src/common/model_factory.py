@@ -154,6 +154,7 @@ def create_model(
     max_tokens: int | None = None,
     temperature: float | None = None,
     top_p: float | None = None,
+    label: str | None = None,
 ) -> BaseChatModel:
     """Return a configured LangChain chat model.
 
@@ -164,6 +165,8 @@ def create_model(
             provider's default is used (anthropic -> 4096; bedrock/openai -> SDK default).
         temperature: optional sampling temperature. When omitted, the provider default applies.
         top_p: optional nucleus-sampling top_p. When omitted, the provider default applies.
+        label: optional human name for the agent this model serves (e.g. "Chef agent").
+            When given it prefixes the startup print so each line says which agent it is.
 
     The sampling params are passed to the SDK ONLY when not None, so leaving them unset
     keeps the provider's own defaults (no hardcoded temperature/top_p here).
@@ -204,6 +207,7 @@ def create_model(
         if value is not None
     ]
     suffix = f" ({', '.join(parts)})" if parts else ""
-    print(f"✅ Using {provider} model: {model_id}{suffix}")
+    prefix = f"{label}: " if label else ""
+    print(f"✅ {prefix}Using {provider} model: {model_id}{suffix}")
 
     return builder(model_id, max_tokens, temperature, top_p)
