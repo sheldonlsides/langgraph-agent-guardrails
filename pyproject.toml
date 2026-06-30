@@ -28,5 +28,5 @@ dependencies = [
     "pypdf>=6.13.0",
     "python-dotenv>=1.2.2",
     "sentence-transformers>=5.5.1",
-    "torch==2.12.0",
+    "torch==2.12.1",
 ]
