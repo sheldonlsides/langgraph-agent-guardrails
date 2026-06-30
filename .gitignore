@@ -1,0 +1,31 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Secrets / local env
+.env
+
+# macOS
+.DS_Store
+
+# Source nutrition dataset (269MB TSV, exceeds GitHub's 100MB limit; download separately)
+src/data/
+
+# Virtual environments
+.venv
+
+# Editor / tooling / local agent config
+.claude/
+.vscode/
+.mcp.json
+CLAUDE.md
+
+# Local dependency-install helper script
+install_deps
+
+# Generated meal plans (output of the multi-agent meal planner)
+src/meal_plans/
